@@ -21,12 +21,18 @@ void processInput(GLFWwindow* window){
 
 static bool isJumping = false;
 static float velocity = 0.0f;
-float gravity = -0.01f;
+float gravity = -0.003f/10;
+static int lastSpaceState = GLFW_RELEASE;
+
 vec3 playerInput(GLFWwindow* window,vec3 position){
-    if(glfwGetKey(window,GLFW_KEY_SPACE) == GLFW_PRESS){
+    int currentSpaceState = glfwGetKey(window, GLFW_KEY_SPACE);
+    bool isSpaceJustPressed = (currentSpaceState == GLFW_PRESS && lastSpaceState == GLFW_RELEASE);
+
+    if (isSpaceJustPressed && !isJumping){
         isJumping = true;
-        velocity = 0.015f/10;
+        velocity = 0.05f;
     }
+
     if(isJumping){
         position.y += velocity;
         velocity += gravity;
@@ -35,6 +41,9 @@ vec3 playerInput(GLFWwindow* window,vec3 position){
             isJumping = false;
         }
     }
+
+    lastSpaceState = currentSpaceState;
+
     return position;
 }
 
@@ -95,7 +104,7 @@ int main(){
     float worldHeight = 8.0f;
 
     vec3 groundPos = vec3(0.0f, -4.0f, 0.0f);
-    vec3 playerPos = vec3(-4.5f, -1.75f, 0.0f);
+    vec3 playerPos = vec3(-4.25f, -1.75f, 0.0f);
 
     glViewport(0,0,800,600);
     glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
