@@ -142,7 +142,7 @@ class SimpleMesh{
                 setupBuffers(vertices,sizeof(vertices));
                 vertexCount = 18;
             }
-            else if("sphere"){
+            else if(type == "sphere"){
                 vector<float> sphereData = generateSphereData(0.5f, 36, 18);
                 setupBuffers(sphereData.data(), sphereData.size() * sizeof(float));
                 vertexCount = sphereData.size() / 11;
