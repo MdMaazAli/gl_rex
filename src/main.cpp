@@ -15,10 +15,14 @@ using namespace glm;
 
 Camera camera(glm::vec3(0.0f,0.0f,3.0f));
 
+float xPos = 0.0f;
+float zPos = 0.0f;
+glm::vec3 lightPos = glm::vec3(xPos,0.0f,zPos);
+glm::vec3 lightColor = glm::vec3(1.0f,0.0f,0.0f);
+
 bool mouseFirst = true;
 float lastX = 800.0f/2.0f;
 float lastY = 600.0f/2.0f;
-glm::vec3 lightPos(1.0f, 0.0f, 1.0f);
 
 void mouse_callback(GLFWwindow* window,double xPosIn,double yPosIn){
     float xPos = (float)xPosIn;
@@ -95,6 +99,9 @@ int main(){
     glViewport(0,0,800,600);
     glEnable(GL_DEPTH_TEST);
 
+    Shader lightSrcShader("src/vertexShader.glsl","src/fragLightSrc.glsl");
+    SimpleMesh lightCube("cube");
+
     Shader testShader("src/vertexShader.glsl","src/fragShader.glsl");
     SimpleMesh cubeMesh("cube");
     SimpleMesh pyramidMesh("pyramid");
@@ -106,6 +113,9 @@ int main(){
         lastFrame = currentFrame;
         processInput(window);
 
+        xPos = sin(glfwGetTime());
+        zPos = cos(glfwGetTime());
+
         glClearColor(0.1f,0.1f,0.1f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -115,30 +125,50 @@ int main(){
         glm::mat4 view = glm::mat4(1.0f);
         view = camera.GetViewMatrix();
 
-        testShader.use();
+        lightSrcShader.use();
+
+        glm::mat4 lightSrc = glm::mat4(1.0f);
+        lightPos.x = xPos;
+        lightPos.z = zPos;
+        lightSrc = glm::translate(lightSrc,lightPos);
+        lightSrc = glm::scale(lightSrc,vec3(0.25f,0.25f,0.25f));
+        lightSrcShader.setMat4("model",lightSrc);
+        lightSrcShader.setMat4("view",view);
+        lightSrcShader.setMat4("projection",projection);
+        lightSrcShader.setVec3("lightColor",lightColor);
+        lightCube.draw();
         
+        glm::vec3 lightPosView = vec3(view*vec4(lightPos,1.0f));
+        testShader.use();
+
         glm::mat4 cube = glm::mat4(1.0f);
-        cube = glm::scale(cube,glm::vec3(0.5f,0.5f,0.5f));
         cube = glm::translate(cube,glm::vec3(0.0f,0.0f,0.0f));
+        cube = glm::scale(cube,glm::vec3(0.5f,0.5f,0.5f));
         testShader.setMat4("model",cube);
         testShader.setMat4("view",view);
         testShader.setMat4("projection",projection);
+        testShader.setVec3("lightColor",lightColor);
+        testShader.setVec3("lightPosView",lightPosView);
         cubeMesh.draw();
         
         glm::mat4 pyramid = glm::mat4(1.0f);
-        pyramid = glm::scale(pyramid,glm::vec3(0.5f,0.5f,0.5f));
         pyramid = glm::translate(pyramid,glm::vec3(1.5f,0.0f,0.0f));
+        pyramid = glm::scale(pyramid,glm::vec3(0.5f,0.5f,0.5f));
         testShader.setMat4("model",pyramid);
         testShader.setMat4("view",view);
         testShader.setMat4("projection",projection);
+        testShader.setVec3("lightColor",lightColor);
+        testShader.setVec3("lightPosView",lightPosView);
         pyramidMesh.draw();
         
         glm::mat4 sphere = glm::mat4(1.0f);
-        sphere = glm::scale(sphere,glm::vec3(0.5f,0.5f,0.5f));
         sphere = glm::translate(sphere,glm::vec3(-1.5f,0.0f,0.0f));
+        sphere = glm::scale(sphere,glm::vec3(0.5f,0.5f,0.5f));
         testShader.setMat4("model",sphere);
         testShader.setMat4("view",view);
         testShader.setMat4("projection",projection);
+        testShader.setVec3("lightColor",lightColor);
+        testShader.setVec3("lightPosView",lightPosView);
         sphereMesh.draw();
 
         glfwSwapBuffers(window);
