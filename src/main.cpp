@@ -13,12 +13,12 @@
 using namespace std;
 using namespace glm;
 
-Camera camera(glm::vec3(0.0f,0.0f,3.0f));
+Camera camera(glm::vec3(0.0f,0.0f,8.0f));
 
 float xPos = 0.0f;
 float zPos = 0.0f;
-glm::vec3 lightPos = glm::vec3(xPos,0.0f,zPos);
-glm::vec3 lightColor = glm::vec3(1.0f,0.0f,0.0f);
+glm::vec3 lightPos = glm::vec3(1.0f,1.0f,2.0f);
+glm::vec3 lightColor = glm::vec3(0.8f,0.8f,0.2f);
 
 bool mouseFirst = true;
 float lastX = 800.0f/2.0f;
@@ -53,6 +53,13 @@ void framebuffer_size_callback(GLFWwindow* window,int width,int height){
     glViewport(0,0,width,height);
 }
 
+// rexxy attributes
+glm::vec3 playerPos = glm::vec3(0.0f);
+float flightTime = 0.0f;
+float xSpeed = 3.0f;
+float ySpeed = 1.0f;
+bool isFlight = false;
+
 void processInput(GLFWwindow* window){
     if(glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS){
         glfwSetWindowShouldClose(window,true);
@@ -68,6 +75,10 @@ void processInput(GLFWwindow* window){
     }
     if(glfwGetKey(window,GLFW_KEY_D) == GLFW_PRESS){
         camera.ProcessKeyboard(RIGHT,deltaTime);
+    }
+    if(glfwGetKey(window,GLFW_KEY_SPACE) == GLFW_PRESS){
+        isFlight = true;
+        ySpeed = 5.0f;
     }
 }
 
@@ -103,21 +114,61 @@ int main(){
     SimpleMesh lightCube("cube");
 
     Shader testShader("src/vertexShader.glsl","src/fragShader.glsl");
-    SimpleMesh cubeMesh("cube");
-    SimpleMesh pyramidMesh("pyramid");
     SimpleMesh sphereMesh("sphere");
 
+    Shader obsShader("src/vertexShader.glsl","src/fragShaderObs.glsl");
+    SimpleMesh pyramidMesh("pyramid");
+
+    Shader grndShader("src/vertexShader.glsl","src/fragShaderGrnd.glsl");
+    SimpleMesh cubeMesh("cube");
+
+    vector<float> grndCoords(50);
+    int startX = -25.0f;
+    for(int i=0; i<50; i++){
+        grndCoords[i] = startX + i; 
+    }
+
+    vector<float> obsCoords(10);
+    int obsStartX = 3.0f;
+    int gap=0.0f;
+    for(int i=0; i<10; i++){
+        gap+=5.0f;
+        obsCoords[i] = obsStartX + gap;
+    }
+
+    float dt = 1.0f/60.0f;
+    float accTime = 0.0f;
     while(!glfwWindowShouldClose(window)){
         float currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         processInput(window);
+        accTime += deltaTime;
 
         xPos = sin(glfwGetTime());
         zPos = cos(glfwGetTime());
 
         glClearColor(0.1f,0.1f,0.1f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // physics loop
+        while(accTime>=dt){
+            if(isFlight){
+                float gravity = 9.8f;
+                ySpeed -= gravity*dt;
+                playerPos.y += ySpeed*dt;
+                if(playerPos.y <= 0.0f){
+                    ySpeed = 0.0f;
+                    playerPos.y = 0.0f;
+                    isFlight = false;
+                }
+            }
+            playerPos.x += xSpeed*accTime;
+            lightPos.x += xSpeed*accTime;
+            accTime -= dt;
+        }
+        
+        camera.Position.x = playerPos.x;
 
         glm::mat4 projection = glm::mat4(1.0f);
         projection = glm::perspective(radians(camera.Zoom),800.0f/600.0f,0.1f,1000.0f);
@@ -128,8 +179,8 @@ int main(){
         lightSrcShader.use();
 
         glm::mat4 lightSrc = glm::mat4(1.0f);
-        lightPos.x = xPos;
-        lightPos.z = zPos;
+        // lightPos.x = xPos;
+        // lightPos.z = zPos;
         lightSrc = glm::translate(lightSrc,lightPos);
         lightSrc = glm::scale(lightSrc,vec3(0.25f,0.25f,0.25f));
         lightSrcShader.setMat4("model",lightSrc);
@@ -140,29 +191,10 @@ int main(){
         
         glm::vec3 lightPosView = vec3(view*vec4(lightPos,1.0f));
         testShader.use();
-
-        glm::mat4 cube = glm::mat4(1.0f);
-        cube = glm::translate(cube,glm::vec3(0.0f,0.0f,0.0f));
-        cube = glm::scale(cube,glm::vec3(0.5f,0.5f,0.5f));
-        testShader.setMat4("model",cube);
-        testShader.setMat4("view",view);
-        testShader.setMat4("projection",projection);
-        testShader.setVec3("lightColor",lightColor);
-        testShader.setVec3("lightPosView",lightPosView);
-        cubeMesh.draw();
         
-        glm::mat4 pyramid = glm::mat4(1.0f);
-        pyramid = glm::translate(pyramid,glm::vec3(1.5f,0.0f,0.0f));
-        pyramid = glm::scale(pyramid,glm::vec3(0.5f,0.5f,0.5f));
-        testShader.setMat4("model",pyramid);
-        testShader.setMat4("view",view);
-        testShader.setMat4("projection",projection);
-        testShader.setVec3("lightColor",lightColor);
-        testShader.setVec3("lightPosView",lightPosView);
-        pyramidMesh.draw();
-        
+        // rexxy
         glm::mat4 sphere = glm::mat4(1.0f);
-        sphere = glm::translate(sphere,glm::vec3(-1.5f,0.0f,0.0f));
+        sphere = glm::translate(sphere,glm::vec3(playerPos.x,playerPos.y,0.0f));
         sphere = glm::scale(sphere,glm::vec3(0.5f,0.5f,0.5f));
         testShader.setMat4("model",sphere);
         testShader.setMat4("view",view);
@@ -170,7 +202,44 @@ int main(){
         testShader.setVec3("lightColor",lightColor);
         testShader.setVec3("lightPosView",lightPosView);
         sphereMesh.draw();
+        
+        // obstacles
+        obsShader.use();
+        obsShader.setMat4("view",view);
+        obsShader.setMat4("projection",projection);
+        obsShader.setVec3("lightColor",lightColor);
+        obsShader.setVec3("lightPosView",lightPosView);
 
+        for(int i=0; i<10; i++){
+            int obsX = obsCoords[i];
+            while(obsX < camera.Position.x-5.0f) obsX += 10.0f;
+            while(obsX > camera.Position.x+5.0f) obsX -= 10.0f;
+            glm::mat4 pyramid = glm::mat4(1.0f);
+            pyramid = glm::translate(pyramid,glm::vec3(obsX,0.0f,0.0f));
+            pyramid = glm::scale(pyramid,glm::vec3(0.5f,0.5f,0.5f));
+            pyramid = glm::rotate(pyramid,(float)glfwGetTime(),glm::vec3(0.0f,1.0f,0.0f));
+            obsShader.setMat4("model",pyramid);
+            pyramidMesh.draw();
+        }
+        
+        // ground
+        grndShader.use();
+        grndShader.setMat4("view",view);
+        grndShader.setMat4("projection",projection);
+        grndShader.setVec3("lightColor",lightColor);
+        grndShader.setVec3("lightPosView",lightPosView);
+
+        for(int i=0; i<50; i++){
+            int grndX = grndCoords[i];
+            while(grndX < camera.Position.x-25.0f) grndX += 50.0f;
+            while(grndX > camera.Position.x+25.0f) grndX -= 50.0f;
+            glm::mat4 cube = glm::mat4(1.0f);
+            cube = glm::translate(cube,glm::vec3(grndX,-1.0f,0.0f));
+            cube = glm::scale(cube,glm::vec3(1.0f,1.0f,1.0f));
+            grndShader.setMat4("model",cube);
+            cubeMesh.draw();
+        }
+        
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
