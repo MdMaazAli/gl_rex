@@ -26,7 +26,9 @@ The project is currently in the prototype phase. Current focus areas include:
 ## Demo
 The current prototype features "Rexxy" navigating a dark environment with red-lit flooring and green obstacles.
 
-![Project Preview](https://github.com/MdMaazAli/gl_rex/blob/main/rexxy_prototype1%20(1).gif)
+<p align="center">
+  <img src="https://github.com/MdMaazAli/gl_rex/blob/main/rexxy_prototype1%20(1).gif" alt="Rexxy Prototype Demo" width="600">
+</p>
 
 ## ⚙️ Setup and Build
 1. **Clone the repository:**
